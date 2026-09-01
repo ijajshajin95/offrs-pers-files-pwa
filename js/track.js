@@ -7,7 +7,7 @@
 // No documents involved here — this is a plain dated ledger, not a category.
 
 import {
-  getTrackerItems, addCustomTracker, setTrackerCadence, getTrackerEntries, addTrackerEntry,
+  getTrackerItems, addCustomTracker, setTrackerCadence, getTrackerEntries, addTrackerEntry, deleteTrackerEntry,
   getLastEntryDates, trackerNextDueEpoch, getChecklistItems, setChecklistTicked, checklistIsDue,
   addChecklistItem, deleteChecklistItem, getAllDocumentsSorted,
 } from "./db.js";
@@ -164,11 +164,23 @@ async function openTrackerDetail(tracker) {
     }
     entries.forEach((entry) => {
       const li = document.createElement("li");
+      li.className = "entry-row";
       const label = document.createElement("span");
       const parts = [`৳${entry.amount}`, entry.name, formatShortDate(entry.dateEpoch)].filter(Boolean);
       if (entry.note) parts.push(entry.note);
       label.textContent = parts.join(" — ");
-      li.appendChild(label);
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "row-icon-btn row-icon-delete";
+      deleteBtn.textContent = "🗑";
+      deleteBtn.setAttribute("aria-label", "Delete entry");
+      deleteBtn.addEventListener("click", async () => {
+        if (window.confirm(`Delete "${parts.join(" — ")}"? This is permanent.`)) {
+          await deleteTrackerEntry(ctx.db, entry.id);
+          await refreshEntries();
+        }
+      });
+      li.append(label, deleteBtn);
       list.appendChild(li);
     });
   }

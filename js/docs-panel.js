@@ -17,7 +17,7 @@
 // file type) and Print-ready Dossier (PDF, images only) — see bundle-share.js.
 
 import {
-  addDocument, getDocumentsByCategoryFlat, getDocumentsByFolder,
+  addDocument, getDocumentsByCategoryFlat, getDocumentsByFolder, deleteDocument,
   getTitleOptions, addTitleOption, renameTitleOption, deleteTitleOption,
 } from "./db.js";
 import { encryptBytes, decryptBytes } from "./crypto.js";
@@ -28,6 +28,70 @@ import { shareBundleZip, shareDossierPdf } from "./bundle-share.js";
 import { createDateField } from "./date-field.js";
 
 const TITLE_OPTION_OTHERS = "Others";
+
+/**
+ * Real document-scan enhancement for a freshly-captured Scan photo — punches
+ * up contrast and normalizes brightness/white-balance the way a proper
+ * scanner app does, instead of just uploading the raw camera photo as-is.
+ * Mirrors android's enhanceScanInPlace exactly (same auto-levels stretch +
+ * saturation boost). Auto edge-detection + perspective correction — true
+ * CamScanner-style crop-to-page — is a separate, much larger computer-vision
+ * project; this is the real, immediately achievable half of "behave like a
+ * scanner app." Falls back to the original file untouched if anything here
+ * fails, so a scan is never lost over this.
+ */
+async function enhanceScanPhoto(file) {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0);
+
+  // Auto white-balance: stretch the histogram so the brightest ~1% of
+  // pixels (the paper) reads near-white and the darkest ~1% (ink) reads
+  // near-black — sample a small downscaled copy for speed.
+  const sampleSize = 100;
+  const sampleCanvas = document.createElement("canvas");
+  sampleCanvas.width = sampleSize;
+  sampleCanvas.height = sampleSize;
+  const sampleCtx = sampleCanvas.getContext("2d");
+  sampleCtx.drawImage(bitmap, 0, 0, sampleSize, sampleSize);
+  const sampleData = sampleCtx.getImageData(0, 0, sampleSize, sampleSize).data;
+
+  const luminances = [];
+  for (let i = 0; i < sampleData.length; i += 4) {
+    luminances.push(0.299 * sampleData[i] + 0.587 * sampleData[i + 1] + 0.114 * sampleData[i + 2]);
+  }
+  luminances.sort((a, b) => a - b);
+  let low = luminances[Math.min(Math.floor(luminances.length * 0.01), luminances.length - 1)];
+  let high = luminances[Math.min(Math.floor(luminances.length * 0.99), luminances.length - 1)];
+  if (high - low < 40) { low = 0; high = 255; } // near-flat capture — don't blow out an already-even image
+
+  const scale = high > low ? 255 / (high - low) : 1;
+  const translate = -low * scale;
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  // Mild saturation lift alongside the level stretch — a scanner "Enhance"
+  // look, not flat B&W, since a colored stamp/signature still needs to read.
+  const satBoost = 1.15;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = clamp255(data[i] * scale + translate);
+    const g = clamp255(data[i + 1] * scale + translate);
+    const b = clamp255(data[i + 2] * scale + translate);
+    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    data[i] = clamp255(gray + (r - gray) * satBoost);
+    data[i + 1] = clamp255(gray + (g - gray) * satBoost);
+    data[i + 2] = clamp255(gray + (b - gray) * satBoost);
+  }
+  ctx.putImageData(imageData, 0, 0);
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+  return new File([blob], file.name, { type: "image/jpeg" });
+}
+
+function clamp255(v) { return Math.max(0, Math.min(255, v)); }
 
 export async function renderDocsPanel(container, ctx, category, folderId, options = {}) {
   const manageableCategoryKey = options.manageableCategoryKey ?? null;
@@ -61,7 +125,11 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
   const scanInput = document.createElement("input");
   scanInput.type = "file";
   scanInput.accept = "image/*";
-  scanInput.capture = "environment";
+  // "capture" only actually opens the camera directly (skips the file/gallery
+  // picker) when it's a real HTML attribute — setting it as a JS property
+  // alone does nothing, a real bug that meant "Scan" behaved just like
+  // "Choose file" on real phones.
+  scanInput.setAttribute("capture", "environment");
   scanInput.id = "docs-panel-scan-" + Math.random().toString(36).slice(2);
   scanInput.hidden = true;
   const scanLabel = document.createElement("label");
@@ -69,18 +137,45 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
   scanLabel.className = "pick-btn";
   scanLabel.textContent = "📷 Scan";
 
-  const pickedNameEl = document.createElement("p");
-  pickedNameEl.className = "hint";
+  // Real thumbnail preview of the picked file, not just its filename — an
+  // object URL works directly for any image File, no decode step needed.
+  const pickedPreviewWrap = document.createElement("div");
+  pickedPreviewWrap.className = "picked-preview";
+  pickedPreviewWrap.hidden = true;
+  const pickedThumb = document.createElement("div");
+  pickedThumb.className = "picked-preview-thumb";
+  const pickedNameEl = document.createElement("span");
+  pickedPreviewWrap.append(pickedThumb, pickedNameEl);
 
-  fileInput.addEventListener("change", () => {
-    if (fileInput.files[0]) { selectedFile = fileInput.files[0]; pickedNameEl.textContent = selectedFile.name; }
-  });
-  scanInput.addEventListener("change", () => {
-    if (scanInput.files[0]) { selectedFile = scanInput.files[0]; pickedNameEl.textContent = selectedFile.name; }
+  let pickedObjectUrl = null;
+  function showPicked(file) {
+    selectedFile = file;
+    pickedNameEl.textContent = file.name;
+    pickedPreviewWrap.hidden = false;
+    if (pickedObjectUrl) URL.revokeObjectURL(pickedObjectUrl);
+    pickedThumb.innerHTML = "";
+    if (file.type.startsWith("image/")) {
+      pickedObjectUrl = URL.createObjectURL(file);
+      const img = document.createElement("img");
+      img.src = pickedObjectUrl;
+      pickedThumb.appendChild(img);
+    } else {
+      pickedObjectUrl = null;
+      pickedThumb.textContent = file.type === "application/pdf" ? "📄" : "📎";
+    }
+  }
+
+  fileInput.addEventListener("change", () => { if (fileInput.files[0]) showPicked(fileInput.files[0]); });
+  scanInput.addEventListener("change", async () => {
+    if (!scanInput.files[0]) return;
+    pickedNameEl.textContent = "Enhancing scan…";
+    pickedPreviewWrap.hidden = false;
+    const enhanced = await enhanceScanPhoto(scanInput.files[0]).catch(() => scanInput.files[0]);
+    showPicked(enhanced);
   });
 
   pickRow.append(fileInput, fileLabel, scanInput, scanLabel);
-  form.append(pickRow, pickedNameEl);
+  form.append(pickRow, pickedPreviewWrap);
 
   // ---------- Title: free text, or a chip picker (Others -> custom text) ----------
 
@@ -171,24 +266,11 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
   form.appendChild(tagsInput);
 
   const notesInput = document.createElement("textarea");
-  notesInput.placeholder = "Notes";
+  // Examples shown as inline placeholder text inside the box itself
+  // (disappears once typing starts) instead of separate tappable chips
+  // outside it.
+  notesInput.placeholder = notesSuggestions.length ? `e.g. ${notesSuggestions.join(", ")}` : "Notes";
   form.appendChild(notesInput);
-
-  if (notesSuggestions.length) {
-    const suggestWrap = document.createElement("div");
-    suggestWrap.className = "subtype-row";
-    notesSuggestions.forEach((suggestion) => {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "chip";
-      chip.textContent = suggestion;
-      chip.addEventListener("click", () => {
-        notesInput.value = notesInput.value.trim() ? `${notesInput.value}, ${suggestion}` : suggestion;
-      });
-      suggestWrap.appendChild(chip);
-    });
-    form.appendChild(suggestWrap);
-  }
 
   const saveBtn = document.createElement("button");
   saveBtn.type = "submit";
@@ -333,6 +415,20 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
         thumbBox.appendChild(checkbox);
         card.addEventListener("click", () => { checkbox.checked = !checkbox.checked; checkbox.dispatchEvent(new Event("change")); });
       } else {
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "doc-thumb-delete";
+        deleteBtn.textContent = "🗑";
+        deleteBtn.setAttribute("aria-label", "Delete");
+        deleteBtn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if (window.confirm(`Delete "${doc.title}"?\n\nThis removes it permanently — it will no longer show up here, in Search, or in Timeline.`)) {
+            await deleteDocument(ctx.db, doc.id);
+            await refreshList();
+          }
+        });
+        thumbBox.appendChild(deleteBtn);
+
         const shareBtn = document.createElement("button");
         shareBtn.type = "button";
         shareBtn.className = "doc-thumb-share";
@@ -402,6 +498,8 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
       form.reset();
       selectedFile = null;
       pickedNameEl.textContent = "";
+      pickedPreviewWrap.hidden = true;
+      if (pickedObjectUrl) { URL.revokeObjectURL(pickedObjectUrl); pickedObjectUrl = null; }
       selectedTitleOption = titleOptions[0] ?? "";
       customTitleInput.hidden = true;
       titleChipsWrap?.querySelectorAll(".chip").forEach((c, i) => c.classList.toggle("chip-selected", i === 0));

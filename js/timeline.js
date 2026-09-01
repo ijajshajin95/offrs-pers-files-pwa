@@ -6,7 +6,6 @@
 
 import { getAllDocumentsSorted, getAllCategories, getAllFolders } from "./db.js";
 import { categoryAccent, categoryEmoji } from "./theme.js";
-import { openDocument } from "./share.js";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -83,7 +82,7 @@ function resolveTimelineDate(doc, foldersById) {
   return doc.uploadDate;
 }
 
-export async function renderTimeline(container, ctx, categoriesById) {
+export async function renderTimeline(container, ctx, categoriesById, onOpenCategory) {
   const [docs, categories] = await Promise.all([getAllDocumentsSorted(ctx.db), getAllCategories(ctx.db)]);
   const folders = await getAllFolders(ctx.db, categories);
   const foldersById = Object.fromEntries(folders.map((f) => [f.id, f]));
@@ -129,7 +128,9 @@ export async function renderTimeline(container, ctx, categoriesById) {
         <span class="timeline-row-sub">${escapeHtml(category?.displayName ?? "")} · ${MONTH_NAMES[date.getMonth()]} ${date.getDate()}</span>
       </span>
     `;
-    row.addEventListener("click", () => openDocument(ctx.fileKey, doc));
+    // Jump to the document's own place in the app (its category/folder), not
+    // straight out to an external viewer — lets you see it in context.
+    row.addEventListener("click", () => { if (category) onOpenCategory(category); });
     list.appendChild(row);
   });
 

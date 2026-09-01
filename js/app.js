@@ -185,6 +185,8 @@ function initTheme() {
 function renderSettings() {
   document.getElementById("settings-app-name").textContent = APP_CONTENT.appName;
   document.getElementById("about-tagline").textContent = APP_CONTENT.tagline;
+  document.getElementById("why-text").textContent = APP_CONTENT.whyThisApp;
+  document.getElementById("howto-text").textContent = APP_CONTENT.howToUse;
   document.getElementById("about-text").textContent = APP_CONTENT.about;
   document.getElementById("disclaimer-text").textContent = APP_CONTENT.disclaimer;
   document.getElementById("privacy-text").textContent = APP_CONTENT.privacy;
@@ -509,6 +511,19 @@ setInterval(() => {
   }
 }, 15_000);
 
+// ---------- Tap-anywhere-to-dismiss-keyboard ----------
+// One global listener instead of wiring every individual form — a tap
+// lands on an actual input/textarea/select (or a label pointing at one) and
+// leaves it focused; a tap anywhere else blurs whatever currently has focus,
+// same as tapping outside a text field on iOS/Android. Covers every screen
+// with an input, not just the ones that had their own handler before this.
+document.addEventListener("click", (e) => {
+  const active = document.activeElement;
+  if (!active || active === document.body) return;
+  const isFieldTarget = e.target.closest("input, textarea, select, label, button");
+  if (!isFieldTarget) active.blur();
+});
+
 // ---------- Home / categories ----------
 
 async function renderHome() {
@@ -772,7 +787,7 @@ navHomeBtn.addEventListener("click", () => showView("home"));
 navTimelineBtn.addEventListener("click", async () => {
   showView("timeline");
   pushBack(() => showView("home"));
-  await renderTimeline(document.getElementById("timeline-content"), { db, fileKey }, categoriesById);
+  await renderTimeline(document.getElementById("timeline-content"), { db, fileKey }, categoriesById, openCategory);
 });
 navTrackBtn.addEventListener("click", async () => {
   showView("track");

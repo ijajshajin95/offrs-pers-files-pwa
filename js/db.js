@@ -517,6 +517,15 @@ export function addTrackerEntry(db, entry) {
   });
 }
 
+export function deleteTrackerEntry(db, id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("trackerEntries", "readwrite");
+    tx.objectStore("trackerEntries").delete(id);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 /** { [trackerItemId]: mostRecentDateEpoch } — used to compute each tracker's next-due reminder without loading every entry. */
 export function getLastEntryDates(db) {
   return new Promise((resolve, reject) => {
