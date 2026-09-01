@@ -46,6 +46,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Baseline for every text input/select — mobile Safari/Chrome auto-zoom the
+   whole page on focus whenever a field's font-size computes under 16px, and
+   several form fields across the app never set their own font-size, falling
+   back to the browser's own (smaller) default control font. One low-priority
+   rule here fixes every one of them at once; anything that wants a specific
+   size (e.g. .lock-box input's 1.1rem) still overrides this normally. */
+input, textarea, select { font-size: 16px; }
+
 header {
   display: flex;
   align-items: center;
@@ -104,7 +112,14 @@ nav#app-nav button.active { color: var(--brand); background: color-mix(in srgb, 
   background: var(--error);
 }
 
-main { padding: 16px 16px 84px; max-width: 720px; margin: 0 auto; }
+/* Keeps the page's scrollable height consistent across every tab. Without
+   this, a short view (Timeline/Backup with little content) makes the page
+   non-scrollable while a tall one (Home's grid) does scroll — the mobile
+   browser's address bar auto-hides on one and re-shows on the other, and the
+   fixed bottom nav visibly jumps as that viewport-height change lands.
+   100dvh (dynamic viewport height, the current visible viewport including the
+   address bar's state) with 100vh as an older-browser fallback. */
+main { padding: 16px 16px 84px; max-width: 720px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; }
 
 /* Stat row */
 .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
@@ -206,6 +221,24 @@ main { padding: 16px 16px 84px; max-width: 720px; margin: 0 auto; }
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px;
+  /* Quick Add floats fixed over this grid — without clearance the last row
+     has nowhere to scroll clear of it. */
+  margin-bottom: 76px;
+}
+
+.quick-add-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 84px;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  z-index: 15;
 }
 
 .category-tile {
@@ -472,6 +505,13 @@ input:focus, textarea:focus, button:focus-visible {
   text-align: center;
   letter-spacing: 4px;
 }
+/* PIN fields are plain type="text" (not type="password") specifically so
+   Chrome/Safari stop offering to save a 4-6 digit PIN as a login credential
+   — that "Save password?" prompt reappearing on every unlock was reported as
+   "so annoying." -webkit-text-security masks the digits as dots visually
+   instead, without triggering the password-manager heuristics. WebKit-only,
+   but that's exactly Chrome + Safari on both platforms this app targets. */
+.pin-input { -webkit-text-security: disc; }
 
 .lock-box button {
   border-radius: 12px;
@@ -649,6 +689,11 @@ input:focus, textarea:focus, button:focus-visible {
   font-weight: 700;
   padding: 10px;
   cursor: pointer;
+}
+.course-form button.secondary-btn {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .docs-panel form {

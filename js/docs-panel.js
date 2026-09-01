@@ -257,7 +257,7 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
   const hasDateField = extraFields.some((f) => f.isDate);
   let genericDateValue = "";
   if (!hasDateField) {
-    form.appendChild(createDateField("Date", "", (v) => { genericDateValue = v; }));
+    form.appendChild(createDateField("Dt", "", (v) => { genericDateValue = v; }));
   }
 
   const tagsInput = document.createElement("input");

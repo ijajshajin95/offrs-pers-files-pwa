@@ -26,7 +26,7 @@ const EXTRA_FIELDS_BY_CATEGORY = {
   certificates: [
     { key: "cert_name", label: "Certificate Name" },
     { key: "issuing_authority", label: "Issuing Authority" },
-    { key: "issue_date", label: "Issue Date", isDate: true },
+    { key: "issue_date", label: "Issue Dt", isDate: true },
   ],
 };
 
@@ -89,7 +89,7 @@ function showView(view) {
   trackView.hidden = view !== "track";
   trackerDetailView.hidden = view !== "tracker-detail";
 
-  document.getElementById("header-actions").hidden = view !== "home";
+  headerSearchBtn.hidden = view !== "home";
 
   // Bottom nav only shows for the 5 top-level tabs — search/folder/tracker-detail/lock/welcome
   // show their own back arrow (or no nav at all pre-unlock) instead, mirroring
@@ -578,9 +578,17 @@ function renderAddCategoryTile(categories) {
   const form = document.createElement("div");
   form.className = "course-form";
   form.hidden = true;
-  form.innerHTML = `<input id="new-category-name" placeholder="Category name" /><button id="new-category-save">Save</button>`;
+  form.innerHTML = `<input id="new-category-name" placeholder="Category name" /><button id="new-category-save">Save</button><button type="button" id="new-category-cancel" class="secondary-btn">Cancel</button>`;
 
-  addBtn.addEventListener("click", () => { form.hidden = false; addBtn.hidden = true; });
+  function resetForm() {
+    form.querySelector("#new-category-name").value = "";
+    form.hidden = true;
+    addBtn.hidden = false;
+  }
+  addBtn.addEventListener("click", () => { form.hidden = false; addBtn.hidden = true; form.querySelector("#new-category-name").focus(); });
+  // No way to back out once tapped was a real gap — Cancel just re-collapses
+  // to the "+ Add category" tile with nothing saved.
+  form.querySelector("#new-category-cancel").addEventListener("click", resetForm);
   form.querySelector("#new-category-save").addEventListener("click", async () => {
     const nameInput = form.querySelector("#new-category-name");
     const name = nameInput.value.trim();
@@ -593,6 +601,9 @@ function renderAddCategoryTile(categories) {
       sortOrder: categories.length,
     });
     await renderHome();
+    // Visible proof it actually saved — scroll straight to the new tile
+    // instead of leaving the user to wonder whether anything happened.
+    document.querySelector(".category-grid .category-tile:last-of-type")?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 
   wrap.append(addBtn, form);

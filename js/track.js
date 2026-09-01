@@ -96,7 +96,11 @@ export async function renderTrackLedger() {
 
 async function openTrackerDetail(tracker) {
   ctx.showView("tracker-detail");
-  const onBack = () => ctx.showView("track");
+  // showView only toggles visibility, never re-renders — without refreshing
+  // here, any entry added on this screen never shows up in the ledger list's
+  // "Last entry: ..." line after backing out, a real bug (looked like
+  // entries weren't saving at all).
+  const onBack = () => { ctx.showView("track"); renderTrackLedger(); };
   ctx.pushBack(onBack);
   document.getElementById("tracker-detail-title").textContent = tracker.name;
   document.getElementById("tracker-detail-back").onclick = () => history.back();
@@ -136,7 +140,7 @@ async function openTrackerDetail(tracker) {
   `;
   let entryDateValue = "";
   form.querySelector("#tracker-entry-date-container").appendChild(
-    createDateField("Date received", "", (v) => { entryDateValue = v; }),
+    createDateField("Dt received", "", (v) => { entryDateValue = v; }),
   );
   content.appendChild(form);
 
@@ -147,6 +151,10 @@ async function openTrackerDetail(tracker) {
       ? filtered.slice(0, filtered.lastIndexOf("."))
       : filtered;
   });
+
+  const histHeading = document.createElement("h3");
+  histHeading.textContent = "Hist";
+  content.appendChild(histHeading);
 
   const list = document.createElement("ul");
   list.className = "document-list";

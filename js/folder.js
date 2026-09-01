@@ -42,8 +42,8 @@ export function openStructuredCategory(category) {
   if (category.key === "imp_cards") { openFixedTitleOptionSubfolders(category, IMP_CARDS_SUBFOLDERS, CARD_FRONT_BACK); return true; }
   if (category.key === "coro") {
     openExtensibleFixed(category, CORO_DEFAULT_TITLE_OPTIONS, [
-      { key: "coro_number", label: "CORO Number" },
-      { key: "coro_date", label: "CORO Date", isDate: true },
+      { key: "coro_number", label: "CORO No" },
+      { key: "coro_date", label: "CORO Dt", isDate: true },
     ]);
     return true;
   }
@@ -70,7 +70,7 @@ async function openFixedExpirySubfolders(category, subfolderNames) {
     btn.addEventListener("click", async () => {
       const folder = await getOrCreateNamedFolder(ctx.db, category.id, null, name);
       openDocsFolder(category, folder.id, null, () => openFixedExpirySubfolders(category, subfolderNames), {
-        extraFields: [{ key: "expiry_date", label: "Expiry Date", isDate: true }],
+        extraFields: [{ key: "expiry_date", label: "Expiry Dt", isDate: true }],
       });
     });
     li.appendChild(btn);
@@ -381,7 +381,7 @@ function renderCourseListView(category, courses) {
     <div id="course-date-from-container"></div>
     <div id="course-date-to-container"></div>
     <p id="course-duration" class="hint"></p>
-    <input id="course-result" placeholder="Result/Position" />
+    <input id="course-result" placeholder="Result/Posn" />
     <input id="course-grade" placeholder="Grade" />
     <button id="course-save">Save course</button>
   `;
@@ -429,7 +429,7 @@ function openCourseDocs(category, course) {
   ctx.pushBack(onBack);
 
   const meta = course.meta || {};
-  const labels = { institution: "Institution", date_from: "From", date_to: "To", duration_weeks: "Duration", result_position: "Result/Position", grade: "Grade" };
+  const labels = { institution: "Institution", date_from: "From", date_to: "To", duration_weeks: "Duration", result_position: "Result/Posn", grade: "Grade" };
   ctx.metaEl.innerHTML = Object.entries(labels)
     .filter(([key]) => meta[key])
     .map(([key, label]) => `<p>${label}: ${meta[key]}${key === "duration_weeks" ? " weeks" : ""}</p>`)

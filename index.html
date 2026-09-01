@@ -27,10 +27,7 @@
 <body>
   <header>
     <h1 id="about-app-name">Offrs' Pers Files</h1>
-    <div id="header-actions" hidden style="display:flex; gap:6px;">
-      <button id="quick-add-fab" aria-label="Quick Add" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text);">⚡</button>
-      <button id="header-search-btn" aria-label="Search" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text);">🔍</button>
-    </div>
+    <button id="header-search-btn" hidden aria-label="Search" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text);">🔍</button>
   </header>
 
   <main>
@@ -79,8 +76,8 @@
       <div class="lock-box" id="pin-entry-box">
         <div class="icon-badge" style="margin: 0 auto 6px;">🔒</div>
         <h2 id="lock-title">Enter PIN</h2>
-        <input type="password" inputmode="numeric" pattern="[0-9]*" id="lock-pin" maxlength="6" placeholder="PIN" />
-        <input type="password" inputmode="numeric" pattern="[0-9]*" id="lock-pin-confirm" maxlength="6" placeholder="Confirm PIN" hidden />
+        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="pin-input" id="lock-pin" maxlength="6" placeholder="PIN" />
+        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="pin-input" id="lock-pin-confirm" maxlength="6" placeholder="Confirm PIN" hidden />
         <p id="lock-error" hidden></p>
         <button id="lock-submit">Unlock</button>
         <button id="lock-biometric" hidden>Use Face/Touch ID</button>
@@ -118,7 +115,7 @@
         <p id="forgot-status" class="hint"></p>
 
         <div id="forgot-new-pin-box" hidden>
-          <input type="password" inputmode="numeric" pattern="[0-9]*" id="forgot-new-pin" maxlength="6" placeholder="New PIN" />
+          <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="pin-input" id="forgot-new-pin" maxlength="6" placeholder="New PIN" />
           <button id="forgot-save-new-pin">Save new PIN</button>
         </div>
 
@@ -133,6 +130,7 @@
       <div class="stat-row" id="stat-row"></div>
       <div class="category-grid" id="category-grid"></div>
       <div id="add-category-form-container"></div>
+      <button id="quick-add-fab" class="quick-add-fab">⚡ Quick Add</button>
     </section>
 
     <div id="quick-add-overlay" class="quick-add-overlay" hidden>
