@@ -37,7 +37,7 @@ Nothing you add is ever transmitted anywhere unless you personally choose to sha
 
   howToUse: `Home — tap any category tile to open it. Categories with sub-folders (CORO, IPFT, RET, Course/Cadre, Misc, Fin and Banking) show a folder list first; tap a folder to get to its upload form and Docu grid. Use the search icon (top-right) to search across every Docu, or Quick Add to jump straight to any category, including creating a new one.
 
-Adding a Docu — inside any category/folder, tap "Choose file" (any file type) or "Scan" (camera), fill in the Title, Date, Tags and Notes, then "Save Docu". Every entry gets a proper Day/Month/Year date — no more guessing what a plain filename meant.
+Adding a Docu — inside any category/folder, tap "Choose file" (any file type) or "Scan" (camera), fill in the Type, Dt, Tags and Notes, then "Save Docu". Every Docu is named Category - Type - Dt automatically, so it's identifiable at a glance instead of a plain filename. Every entry gets a proper Day/Month/Year Dt.
 
 Managing Docus — tap a Docu to open it. Tap the Share icon on a thumbnail to send it straight out, or the Delete icon to remove it. Use "Select" (top-right of the Docu grid) to pick several at once for Bundle Share (zip) or a print-ready Dossier PDF (images only).
 

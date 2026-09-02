@@ -29,6 +29,23 @@ import { createDateField } from "./date-field.js";
 
 const TITLE_OPTION_OTHERS = "Others";
 
+const AUTO_TITLE_MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** DatePickerField's "" / "yyyy" / "yyyy-MM" / "yyyy-MM-dd" value, formatted for the Category-Type-Dt auto title. Mirrors android's formatDateValueForTitle. */
+function formatDateValueForTitle(value) {
+  const parts = (value || "").split("-").filter(Boolean);
+  if (parts.length === 3) {
+    const [y, m, d] = parts.map(Number);
+    return `${d} ${AUTO_TITLE_MONTH_NAMES[m - 1]} ${y}`;
+  }
+  if (parts.length === 2) {
+    const [y, m] = parts.map(Number);
+    return `${AUTO_TITLE_MONTH_NAMES[m - 1]} ${y}`;
+  }
+  if (parts.length === 1) return parts[0];
+  return "";
+}
+
 /**
  * Real document-scan enhancement for a freshly-captured Scan photo — punches
  * up contrast and normalizes brightness/white-balance the way a proper
@@ -163,6 +180,7 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
       pickedObjectUrl = null;
       pickedThumb.textContent = file.type === "application/pdf" ? "📄" : "📎";
     }
+    updateSaveButtonState();
   }
 
   fileInput.addEventListener("change", () => { if (fileInput.files[0]) showPicked(fileInput.files[0]); });
@@ -192,6 +210,17 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
   function resolvedTitle() {
     if (!titleOptions.length) return titleInput.value.trim();
     return selectedTitleOption === TITLE_OPTION_OTHERS ? customTitleInput.value.trim() : selectedTitleOption;
+  }
+
+  // Naming convention: Category + Type + Dt — every saved Docu is named
+  // consistently instead of whatever free text (or none) the user happened
+  // to type, so a Docu is identifiable from its title alone. Mirrors
+  // android's composeAutoTitle exactly.
+  function composeAutoTitle() {
+    const dateValue = hasDateField
+      ? (extraFields.find((f) => f.isDate) ? extraDateValues[extraFields.find((f) => f.isDate).key] : "") || ""
+      : genericDateValue;
+    return [category.displayName, resolvedTitle(), formatDateValueForTitle(dateValue)].filter(Boolean).join(" - ");
   }
 
   let titleChipsWrap = null;
@@ -225,6 +254,7 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
         titleChipsWrap.querySelectorAll(".chip").forEach((c) => c.classList.remove("chip-selected"));
         chip.classList.add("chip-selected");
         customTitleInput.hidden = opt !== TITLE_OPTION_OTHERS;
+        updateSaveButtonState();
       });
       titleChipsWrap.appendChild(chip);
     });
@@ -276,6 +306,17 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
   saveBtn.type = "submit";
   saveBtn.textContent = "Save Docu";
   form.appendChild(saveBtn);
+
+  // Reflects whether there's actually anything to save — was always enabled
+  // regardless of form state (android's equivalent button already disables
+  // itself correctly; this brought the PWA in line with it). Re-checked on
+  // any form input, plus explicitly after a file is picked/enhanced and
+  // after a title chip is tapped, since those don't fire native input events.
+  function updateSaveButtonState() {
+    saveBtn.disabled = !selectedFile || !resolvedTitle();
+  }
+  form.addEventListener("input", updateSaveButtonState);
+  updateSaveButtonState();
 
   // ---------- Selection toolbar (Bundle Share / PDF Dossier) ----------
 
@@ -485,7 +526,7 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
       await addDocument(ctx.db, {
         categoryId: category.id,
         folderId,
-        title: resolvedTitle() || file.name,
+        title: composeAutoTitle() || file.name,
         iv,
         ciphertext,
         fileType,
@@ -507,8 +548,8 @@ export async function renderDocsPanel(container, ctx, category, folderId, option
       genericDateValue = "";
       await refreshList();
     } finally {
-      saveBtn.disabled = false;
       saveBtn.textContent = "Save Docu";
+      updateSaveButtonState(); // not just disabled = false — the form was just reset, so nothing's picked again yet
     }
   });
 

@@ -8,7 +8,7 @@ const SLIDES = [
   },
   {
     title: "Organize by category",
-    body: "CORO, IPFT, RET, Courses, Certificates and more — built for how you already file paperwork.",
+    body: "CORO, IPFT, RET, Courses, Certs and more — built for how you already file paperwork.",
   },
   {
     title: "Search & share instantly",

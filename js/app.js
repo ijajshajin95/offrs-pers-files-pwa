@@ -1,5 +1,5 @@
 import { APP_CONTENT } from "./content.js";
-import { openDb, seedBuiltInCategories, seedTrackingData, migrateFlatCoroMiscToFolders, getAllCategories, searchDocuments, getDocCountsByCategory, createCategory, slugifyCategoryName } from "./db.js";
+import { openDb, seedBuiltInCategories, seedTrackingData, migrateFlatCoroMiscToFolders, renameCertificatesCategory, getAllCategories, searchDocuments, getDocCountsByCategory, createCategory, slugifyCategoryName } from "./db.js";
 import { categoryAccent, categoryEmoji } from "./theme.js";
 import { getOrCreateKey } from "./crypto.js";
 import {
@@ -24,7 +24,7 @@ import { initTrack, renderTrackLedger, renderTrackChecklist, anyTrackReminderDue
 // both wired in folder.js.
 const EXTRA_FIELDS_BY_CATEGORY = {
   certificates: [
-    { key: "cert_name", label: "Certificate Name" },
+    { key: "cert_name", label: "Cert Name" },
     { key: "issuing_authority", label: "Issuing Authority" },
     { key: "issue_date", label: "Issue Dt", isDate: true },
   ],
@@ -663,20 +663,41 @@ function renderQuickAddResults(query) {
   });
 }
 
+// Each stat is tappable, not just a static number — Categories opens Quick
+// Add's full category list, Docus jumps to Timeline (every Docu across the
+// app), Offline shows a one-line explanation. Matches the reference app's
+// own "expand" stat cards (govtguide-bd.web.app) rather than sitting inert.
 function renderStatRow(categoryCount, docCount) {
   const row = document.getElementById("stat-row");
   row.innerHTML = "";
   const stats = [
-    { icon: "🗂️", value: String(categoryCount), label: "Categories" },
-    { icon: "📄", value: String(docCount), label: "Docus" },
-    { icon: "☁️", value: "100%", label: "Offline" },
+    { icon: "🗂️", value: String(categoryCount), label: "Categories", onClick: () => document.getElementById("quick-add-fab").click() },
+    { icon: "📄", value: String(docCount), label: "Docus", onClick: () => { showView("timeline"); pushBack(() => showView("home")); } },
+    { icon: "☁️", value: "100%", label: "Offline", onClick: showOfflineInfo },
   ];
   for (const stat of stats) {
-    const chip = document.createElement("div");
+    const chip = document.createElement("button");
+    chip.type = "button";
     chip.className = "stat-chip";
-    chip.innerHTML = `<div class="stat-icon">${stat.icon}</div><span class="stat-value">${stat.value}</span><div class="stat-label">${stat.label}</div>`;
+    chip.innerHTML = `<div class="stat-icon">${stat.icon}</div><span class="stat-value">${stat.value}</span><div class="stat-label">${stat.label}</div><div class="stat-chevron">▾</div>`;
+    chip.addEventListener("click", stat.onClick);
     row.appendChild(chip);
   }
+}
+
+function showOfflineInfo() {
+  const overlay = document.createElement("div");
+  overlay.className = "quick-add-overlay";
+  overlay.innerHTML = `
+    <div class="quick-add-sheet">
+      <h3>100% Offline</h3>
+      <p class="hint">No server, no cloud sync, no account. Every Docu is encrypted and stays only on this device — nothing leaves unless you personally choose to share/export it.</p>
+      <button class="folder-add-btn" id="offline-info-close">Got it</button>
+    </div>
+  `;
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector("#offline-info-close").addEventListener("click", () => overlay.remove());
+  document.body.appendChild(overlay);
 }
 
 // ---------- Search ----------
@@ -849,6 +870,7 @@ async function init() {
   await seedBuiltInCategories(db);
   await seedTrackingData(db);
   await migrateFlatCoroMiscToFolders(db);
+  await renameCertificatesCategory(db);
 
   // User tapped a recovery-email link (opened this same page fresh, possibly
   // a new tab) — jump straight to "set new PIN", skipping onboarding/PIN entry.

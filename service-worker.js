@@ -1,7 +1,7 @@
 // Caches app shell for offline use after first load. Files/data themselves
 // live in IndexedDB (see js/db.js), not the cache — this only makes the app
 // itself (HTML/CSS/JS) load without a network connection.
-const CACHE_NAME = "offrs-pers-files-shell-v28";
+const CACHE_NAME = "offrs-pers-files-shell-v30";
 const SHELL_FILES = [
   "./index.html",
   "./manifest.webmanifest",

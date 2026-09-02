@@ -125,13 +125,19 @@ main { padding: 16px 16px 84px; max-width: 720px; margin: 0 auto; min-height: 10
 .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
 .stat-chip {
   background: var(--surface);
+  border: none;
   border-radius: 16px;
   padding: 14px 6px;
   text-align: center;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }
 .stat-chip .stat-icon { font-size: 1.1rem; color: var(--brand); }
 .stat-chip .stat-value { display: block; font-size: 1.3rem; font-weight: 700; margin: 4px 0 2px; }
 .stat-chip .stat-label { font-size: 0.75rem; color: var(--muted); }
+.stat-chip .stat-chevron { font-size: 0.7rem; color: var(--muted); opacity: 0.7; margin-top: 2px; }
 
 #backup-view h3 { color: var(--brand); font-size: 1rem; margin: 20px 0 8px; font-weight: 700; }
 #backup-view .hint { color: var(--muted); font-size: 0.85rem; line-height: 1.5; }
@@ -281,7 +287,7 @@ main { padding: 16px 16px 84px; max-width: 720px; margin: 0 auto; min-height: 10
 }
 
 .settings-identity { text-align: center; padding: 8px 0 4px; }
-.settings-shield { width: 64px; height: 64px; font-size: 1.8rem; margin: 0 auto 10px; background: color-mix(in srgb, var(--brand) 15%, transparent); }
+.settings-logo { width: 64px; height: 64px; margin: 0 auto 10px; border-radius: 50%; display: block; object-fit: cover; }
 .settings-identity h2 { margin: 0 0 4px; font-size: 1.2rem; font-weight: 700; }
 .settings-heading { color: var(--text); font-size: 0.95rem; font-weight: 700; margin: 20px 0 8px; }
 

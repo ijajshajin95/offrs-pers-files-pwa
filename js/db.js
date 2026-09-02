@@ -25,7 +25,7 @@ const BUILT_IN_CATEGORIES = [
   { key: "jolshiri", displayName: "Jolshiri Docus", flat: true },
   { key: "misc", displayName: "Misc Docus", flat: true },         // flat + tags (Marriage, Driving License, ...)
   { key: "fin_banking", displayName: "Fin and Banking", flat: false }, // fixed sub-folders — see folder.js's Fin and Banking routing
-  { key: "certificates", displayName: "Certificates", flat: true },
+  { key: "certificates", displayName: "Certs", flat: true },
   { key: "resale_item_voucher", displayName: "Resale to Item Voucher", flat: true },
   { key: "tada_bill", displayName: "TA/DA Bill Docu", flat: true },
   { key: "salary_adjustment", displayName: "Salary Adjustment Docu", flat: true },
@@ -282,6 +282,29 @@ export async function migrateFlatCoroMiscToFolders(db) {
       });
     }
   }
+}
+
+/**
+ * "Certificates" category renamed to the doctrine abbreviation "Certs" —
+ * only touches a row still holding the exact original name, so a
+ * user-renamed category is left alone. Mirrors android's MIGRATION_6_7.
+ */
+export async function renameCertificatesCategory(db) {
+  const categories = await getAllCategories(db);
+  const cert = categories.find((c) => c.key === "certificates" && c.displayName === "Certificates");
+  if (!cert) return;
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction("categories", "readwrite");
+    const store = tx.objectStore("categories");
+    const req = store.get(cert.id);
+    req.onsuccess = () => {
+      const record = req.result;
+      record.displayName = "Certs";
+      store.put(record);
+    };
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
 }
 
 /** Turns a user-typed category name into a DB key — lowercase, non-alphanumerics collapsed to underscores, de-duped against existing keys. Mirrors android's slugifyCategoryName exactly. */
