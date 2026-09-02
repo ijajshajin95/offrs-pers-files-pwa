@@ -137,7 +137,11 @@ main { padding: 16px 16px 84px; max-width: 720px; margin: 0 auto; min-height: 10
 .stat-chip .stat-icon { font-size: 1.1rem; color: var(--brand); }
 .stat-chip .stat-value { display: block; font-size: 1.3rem; font-weight: 700; margin: 4px 0 2px; }
 .stat-chip .stat-label { font-size: 0.75rem; color: var(--muted); }
-.stat-chip .stat-chevron { font-size: 0.7rem; color: var(--muted); opacity: 0.7; margin-top: 2px; }
+.stat-chip .stat-chevron {
+  width: 0; height: 0; margin: 5px auto 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid var(--muted); opacity: 0.7;
+} /* CSS-drawn triangle, not the "▾" glyph — at this chip's small size the glyph was reading as a faint dash */
 
 #backup-view h3 { color: var(--brand); font-size: 1rem; margin: 20px 0 8px; font-weight: 700; }
 #backup-view .hint { color: var(--muted); font-size: 0.85rem; line-height: 1.5; }

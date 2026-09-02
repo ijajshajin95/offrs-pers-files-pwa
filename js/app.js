@@ -679,7 +679,7 @@ function renderStatRow(categoryCount, docCount) {
     const chip = document.createElement("button");
     chip.type = "button";
     chip.className = "stat-chip";
-    chip.innerHTML = `<div class="stat-icon">${stat.icon}</div><span class="stat-value">${stat.value}</span><div class="stat-label">${stat.label}</div><div class="stat-chevron">▾</div>`;
+    chip.innerHTML = `<div class="stat-icon">${stat.icon}</div><span class="stat-value">${stat.value}</span><div class="stat-label">${stat.label}</div><div class="stat-chevron"></div>`;
     chip.addEventListener("click", stat.onClick);
     row.appendChild(chip);
   }
