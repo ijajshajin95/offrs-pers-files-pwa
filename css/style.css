@@ -56,18 +56,37 @@ input, textarea, select { font-size: 16px; }
 
 header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  /* iOS "Add to Home Screen" standalone mode has no browser chrome of its
-     own — without this, the greeting/Quick Add/Search sat right under the
-     status bar (battery, network, clock), genuinely hidden behind it on a
-     notched iPhone. */
-  padding: max(16px, env(safe-area-inset-top)) 20px 16px;
+  flex-direction: column;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+/* Fixed red banner — testers only, marks every screen as a non-final build.
+   Delete this block (and its <div> in index.html) once real release builds
+   start going out. Sits above the app-name row and absorbs the notch/safe-area
+   clearance itself, so .header-row below no longer needs to. */
+#test-trial-banner {
+  background: #c62828;
+  color: #fff;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  padding: 4px 10px calc(4px + env(safe-area-inset-top));
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* iOS "Add to Home Screen" standalone mode has no browser chrome of its
+     own — without the banner above, the greeting/Quick Add/Search sat right
+     under the status bar (battery, network, clock), genuinely hidden behind
+     it on a notched iPhone. The banner now does that job instead. */
+  padding: 16px 20px;
 }
 
 header h1 { font-size: 1.15rem; font-weight: 700; margin: 0; letter-spacing: -0.01em; color: var(--brand); }
